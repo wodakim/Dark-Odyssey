@@ -1,0 +1,51 @@
+services:
+  # Service backend
+  - type: web
+    name: dark-odyssey-api
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+  # Service frontend
+  - type: web
+    name: dark-odyssey-client
+    env: static
+    region: frankfurt
+    plan: free
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: dark-odyssey-api
+          type: web
+          property: url
+          envVarName: VITE_API_URL
+      - key: VITE_SOCKET_URL
+        fromService:
+          name: dark-odyssey-api
+          type: web
+          property: url
+          envVarName: VITE_SOCKET_URL
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+
