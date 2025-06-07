@@ -58,6 +58,11 @@ export const getProfile = async (req, res) => {
 };
 
 /**
+ * Alias pour getProfile - Récupère l'utilisateur connecté
+ */
+export const getCurrentUser = getProfile;
+
+/**
  * Met à jour le profil de l'utilisateur connecté
  * @param {Object} req - Requête Express
  * @param {Object} res - Réponse Express
@@ -92,6 +97,11 @@ export const updateProfile = async (req, res) => {
 };
 
 /**
+ * Alias pour updateProfile - Met à jour l'utilisateur connecté
+ */
+export const updateUser = updateProfile;
+
+/**
  * Supprime l'utilisateur connecté
  * @param {Object} req - Requête Express
  * @param {Object} res - Réponse Express
@@ -111,11 +121,48 @@ export const deleteProfile = async (req, res) => {
   }
 };
 
+/**
+ * Alias pour deleteProfile - Supprime l'utilisateur connecté
+ */
+export const deleteUser = deleteProfile;
+
+/**
+ * Récupère le profil public d'un utilisateur par son nom d'utilisateur
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+export const getUserProfile = async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const user = await User.findOne({ username }, { 
+      password: 0,
+      email: 0,
+      createdAt: 1,
+      username: 1,
+      avatar: 1
+    });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+    
+    return res.status(200).json(user);
+  } catch (error) {
+    console.error('Erreur lors de la récupération du profil utilisateur:', error);
+    return res.status(500).json({ message: 'Erreur serveur lors de la récupération du profil utilisateur' });
+  }
+};
+
 export default {
   getAllUsers,
   getUserById,
   getProfile,
+  getCurrentUser,
   updateProfile,
-  deleteProfile
+  updateUser,
+  deleteProfile,
+  deleteUser,
+  getUserProfile
 };
 
