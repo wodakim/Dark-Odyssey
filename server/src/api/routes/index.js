@@ -7,8 +7,12 @@ import zoneRoutes from './zone.routes.js';
 import monsterRoutes from './monster.routes.js';
 import combatRoutes from './combat.routes.js';
 import guildRoutes from './guild.routes.js';
+import healthRoutes from './health.routes.js';
 
 const router = express.Router();
+
+// Route de vérification de santé
+router.use('/health', healthRoutes);
 
 // Routes d'authentification
 router.use('/auth', authRoutes);
