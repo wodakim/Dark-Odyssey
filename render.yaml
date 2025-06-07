@@ -24,7 +24,7 @@ services:
     name: dark-odyssey-client
     env: static
     buildCommand: cd client && npm install && npm run build
-    publishDir: ./client/dist
+    staticPublishPath: ./client/dist
     envVars:
       - key: VITE_API_URL
         fromService:
