@@ -256,7 +256,7 @@ export const buyItem = async (req, res) => {
     
     // Vérifier si le personnage a assez d'or
     if (character.gold < item.value) {
-      return res.status(400).json({ message: 'Pas assez d'or pour acheter cet objet' });
+      return res.status(400).json({ message: "Pas assez d'or pour acheter cet objet" });
     }
     
     // Vérifier si le personnage a le niveau requis
