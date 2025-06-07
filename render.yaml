@@ -23,7 +23,7 @@ services:
   - type: web
     name: dark-odyssey-client
     env: static
-    buildCommand: cd client && npm install && npm run build
+    buildCommand: cd client && npm install --legacy-peer-deps && npm run build
     staticPublishPath: ./client/dist
     envVars:
       - key: VITE_API_URL
