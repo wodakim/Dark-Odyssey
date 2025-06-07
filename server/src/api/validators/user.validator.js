@@ -61,9 +61,21 @@ export const validate = (schema) => (req, res, next) => {
   }
 };
 
+/**
+ * Middleware de validation pour la création d'un utilisateur
+ */
+export const validateCreateUser = validate(createUserSchema);
+
+/**
+ * Middleware de validation pour la mise à jour d'un utilisateur
+ */
+export const validateUpdateUser = validate(updateUserSchema);
+
 export default {
   createUserSchema,
   updateUserSchema,
-  validate
+  validate,
+  validateCreateUser,
+  validateUpdateUser
 };
 
