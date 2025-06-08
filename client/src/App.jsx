@@ -8,13 +8,18 @@ import CharacterPanel from './components/game/CharacterPanel';
 import InventoryPanel from './components/game/InventoryPanel';
 import ChatPanel from './components/game/ChatPanel';
 import CombatSystem from './components/game/CombatSystem';
+import AuthForm from './components/auth/AuthForm';
 
-// Données de test
+// Services
+import authService from './services/authService';
+
+// Données de test (à remplacer par des appels API)
 import { testCharacter, testInventory, testMonsters, testMessages } from './data/testData';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
   const [activePanel, setActivePanel] = useState('character');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
@@ -27,12 +32,35 @@ function App() {
   const [combatLogs, setCombatLogs] = useState([]);
   const [messages, setMessages] = useState([]);
   
-  // Simuler un chargement
+  // Vérifier l'authentification au chargement
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      
-      // Charger les données de test
+    const checkAuth = async () => {
+      try {
+        if (authService.isLoggedIn()) {
+          const currentUser = authService.getCurrentUser();
+          setUser(currentUser);
+          setIsLoggedIn(true);
+          
+          // Charger les données du jeu
+          await loadGameData();
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification de l\'authentification:', error);
+        // En cas d'erreur, déconnecter l'utilisateur
+        authService.logout();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Charger les données du jeu
+  const loadGameData = async () => {
+    try {
+      // TODO: Remplacer par de vrais appels API
+      // Pour l'instant, utiliser les données de test
       setCharacter(testCharacter);
       setInventory(testInventory);
       setCurrentZone({
@@ -43,12 +71,37 @@ function App() {
       });
       setMonsters(testMonsters);
       setMessages(testMessages);
-    }, 2000);
+    } catch (error) {
+      console.error('Erreur lors du chargement des données du jeu:', error);
+    }
+  };
+
+  // Gestionnaire de succès d'authentification
+  const handleAuthSuccess = async (userData) => {
+    setUser(userData);
+    setIsLoggedIn(true);
     
-    return () => clearTimeout(timer);
-  }, []);
+    // Charger les données du jeu
+    await loadGameData();
+  };
+
+  // Gestionnaire de déconnexion
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      setIsLoggedIn(false);
+      setUser(null);
+      setCharacter(null);
+      setInventory(null);
+      setCurrentZone(null);
+      setMonsters([]);
+      setMessages([]);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
   
-  // Gestionnaires d'événements
+  // Gestionnaires d'événements du jeu
   const handleMonsterClick = (monster) => {
     setCurrentMonster(monster);
     setCombatLogs([
@@ -116,7 +169,7 @@ function App() {
   
   const handleSendMessage = (message) => {
     const newMessage = {
-      sender: character?.name || 'Joueur',
+      sender: character?.name || user?.username || 'Joueur',
       content: message.content,
       channel: message.channel,
       timestamp: Date.now()
@@ -142,48 +195,7 @@ function App() {
   
   // Page de connexion/inscription
   if (!isLoggedIn) {
-    return (
-      <div className="flex items-center justify-center w-screen h-screen bg-background">
-        <div className="w-96 p-8 bg-card rounded-lg shadow-lg">
-          <h1 className="text-3xl font-bold mb-6 text-center text-primary">Dark Odyssey</h1>
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-1">Nom d'utilisateur</label>
-              <input 
-                type="text" 
-                id="username" 
-                className="w-full px-3 py-2 bg-input text-foreground rounded-md"
-                placeholder="Entrez votre nom d'utilisateur" 
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">Mot de passe</label>
-              <input 
-                type="password" 
-                id="password" 
-                className="w-full px-3 py-2 bg-input text-foreground rounded-md"
-                placeholder="Entrez votre mot de passe" 
-              />
-            </div>
-            
-            <Button 
-              className="w-full bg-primary hover:bg-primary/90" 
-              onClick={() => setIsLoggedIn(true)}
-            >
-              Connexion
-            </Button>
-            
-            <div className="text-center">
-              <a href="#" className="text-sm text-primary hover:underline">Créer un compte</a>
-              <span className="mx-2">•</span>
-              <a href="#" className="text-sm text-primary hover:underline">Mot de passe oublié</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AuthForm onAuthSuccess={handleAuthSuccess} />;
   }
   
   // Interface principale du jeu
@@ -229,13 +241,16 @@ function App() {
               <span>{character?.gold || 100}</span>
             </div>
             
-            <Button variant="outline" size="sm">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              Profil
-            </Button>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">Bienvenue, {user?.username}</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleLogout}
+              >
+                Déconnexion
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -386,108 +401,48 @@ function App() {
               <CombatSystem 
                 character={character}
                 monster={currentMonster}
-                onAttack={handleAttack}
-                onUseSkill={(skill) => console.log('Utiliser compétence', skill)}
-                onUseItem={(item) => console.log('Utiliser objet', item)}
-                onFlee={() => {
-                  setCurrentMonster(null);
-                  setCombatLogs([]);
-                }}
                 combatLogs={combatLogs}
+                onAttack={handleAttack}
+                onFlee={() => setCurrentMonster(null)}
+                onUseItem={(item) => console.log('Utiliser objet', item)}
               />
             )}
             
+            {activePanel === 'skills' && (
+              <div className="text-center text-muted-foreground">
+                <p>Système de compétences en développement</p>
+              </div>
+            )}
+            
             {activePanel === 'map' && (
-              <div>
-                <h2 className="text-xl font-bold mb-4">Carte</h2>
-                <div className="bg-secondary/20 rounded p-4 mb-4">
-                  <h3 className="text-lg font-bold mb-2">{currentZone?.name || 'Zone inconnue'}</h3>
-                  <p className="text-sm mb-2">Niveau: {currentZone?.level || '?'}</p>
-                  <p className="text-sm">{currentZone?.description || 'Aucune description disponible.'}</p>
-                </div>
-                
-                <h3 className="font-bold mb-2">Zones connectées</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="w-full">Marais Putrides</Button>
-                  <Button variant="outline" className="w-full">Village de Départ</Button>
-                </div>
+              <div className="text-center text-muted-foreground">
+                <p>Carte du monde en développement</p>
+              </div>
+            )}
+            
+            {activePanel === 'shop' && (
+              <div className="text-center text-muted-foreground">
+                <p>Boutique en développement</p>
+              </div>
+            )}
+            
+            {activePanel === 'guild' && (
+              <div className="text-center text-muted-foreground">
+                <p>Système de guilde en développement</p>
               </div>
             )}
           </div>
         </aside>
         
-        {/* Zone principale de jeu */}
+        {/* Zone de jeu principale */}
         <main className="game-main">
-          {/* Canvas du jeu */}
           <GameCanvas 
             currentZone={currentZone}
-            character={character}
             monsters={monsters}
             onMonsterClick={handleMonsterClick}
           />
-          
-          {/* Interface utilisateur superposée */}
-          <div className="game-ui">
-            {/* Logs de combat */}
-            {currentMonster && (
-              <div className="absolute bottom-4 left-4 w-64 bg-card/80 backdrop-blur-sm p-2 rounded-lg">
-                <h4 className="font-bold mb-1">Journal de combat</h4>
-                <div className="text-sm space-y-1">
-                  {combatLogs.slice(-3).map((log, index) => (
-                    <p key={index} className={
-                      log.type === 'player' ? 'text-primary' : 
-                      log.type === 'monster' ? 'text-destructive' : ''
-                    }>
-                      {log.message}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Barres de statut du joueur */}
-            <div className="absolute top-4 left-4 w-48 space-y-2">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Santé</span>
-                  <span>{character?.currentHealth || 100}/{character?.maxHealth || 100}</span>
-                </div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-bar-fill progress-bar-health" 
-                    style={{ width: `${((character?.currentHealth || 100) / (character?.maxHealth || 100)) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Mana</span>
-                  <span>{character?.currentMana || 50}/{character?.maxMana || 50}</span>
-                </div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-bar-fill progress-bar-mana" 
-                    style={{ width: `${((character?.currentMana || 50) / (character?.maxMana || 50)) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
         </main>
       </div>
-      
-      {/* Pied de page */}
-      <footer className="game-footer">
-        <div className="flex justify-between w-full text-sm">
-          <div>
-            <span>Dark Odyssey v0.1</span>
-          </div>
-          <div>
-            <span>© 2025 Dark Odyssey Team</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
